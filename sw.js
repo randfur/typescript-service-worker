@@ -48,9 +48,7 @@ const tsLibFilenames = [
   'lib.webworker.importscripts.d.ts',
 ];
 
-
 importScripts(tsUrl + 'lib/typescriptServices.js');
-
 
 let tsLibsPromise = null;
 const compiled = {};
@@ -98,8 +96,6 @@ function createJsResponse(js) {
   });
 }
 
-
-
 async function compile(mainPath) {
   console.log('Compiling: ' + mainPath);
   
@@ -138,36 +134,57 @@ async function fetchSourceTree(mainPath) {
       if (path in sourceFiles) {
         continue;
       }
+
       sourceFiles[path] = null;
       let request = (async () => {
         const url = `${origin}${path}`;
         console.log('Fetching source file: ', url);
         const source = await (await fetch(url)).text();
         sourceFiles[path] = source;
-        const sourceFile = ts.createSourceFile(path, source, ts.ScriptTarget.ESNext);
-        for (const statement of sourceFile.statements) {
-          if (!ts.isAnyImportOrReExport(statement)) {
-            continue;
-          }
-          const modulePathExpr = ts.getExternalModuleName(statement);
-          if (modulePathExpr && ts.isStringLiteral(modulePathExpr) && modulePathExpr.text) {
-            // ./utils -> utils.ts
-            const modulePath = (modulePathExpr.text + '.ts').substring(2);
-            pendingPaths.add(modulePath);
-          }
+        for (const modulePath of getModulePaths(path, source)) {
+          pendingPaths.add(modulePath);
         }
         pendingRequests.delete(request);
       })();
       pendingRequests.add(request);
     }
     pendingPaths.clear();
-    if (pendingRequests.size) {
-      await Promise.race(pendingRequests);
-    } else {
+
+    if (pendingRequests.size == 0) {
       break;
     }
+    await Promise.race(pendingRequests);
   }
   return sourceFiles;
+}
+
+function* getModulePaths(path, source) {
+  const basePath = getBasePath(path);
+  const sourceFile = ts.createSourceFile(path, source, ts.ScriptTarget.ESNext);
+  for (const statement of sourceFile.statements) {
+    if (!ts.isAnyImportOrReExport(statement)) {
+      continue;
+    }
+    const modulePathExpr = ts.getExternalModuleName(statement);
+    if (modulePathExpr && ts.isStringLiteral(modulePathExpr) && modulePathExpr.text) {
+      const modulePath = appendPath(basePath, modulePathExpr.text);
+      if (modulePath.endsWith('js')) {
+        yield modulePath;
+      } else {
+        yield modulePath + '.ts';
+      }
+    }
+  }
+}
+
+function getBasePath(path) {
+  // a/b/c -> a/b/
+  return path.replace(/[^\/]*$/, '');
+}
+
+function appendPath(basePath, relativePath) {
+  // a/b/c/, ../d/e -> a/b/d/e
+  return new URL('https://test.com/' + basePath + relativePath).pathname.substring(1);
 }
 
 function getFilePath(url) {
