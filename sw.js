@@ -100,7 +100,7 @@ async function compile(mainPath) {
   console.log('Compiling: ' + mainPath);
   
   const sourceFiles = await fetchSourceTree(mainPath);
-  console.log(sourceFiles);
+  console.log('Prefetched source files: ', sourceFiles);
 
   ts.sys = createMockSystem(sourceFiles, await tsLibsPromise);
   let program = ts.createProgram([mainPath], {
@@ -111,7 +111,6 @@ async function compile(mainPath) {
     module: ts.ModuleKind.ESNext,
   });
   let emitResult = program.emit();
-  console.log(compiled);
 
   if (emitResult.emitSkipped) {
     return emitResult.diagnostics.map(diagnostic => {
@@ -120,6 +119,7 @@ async function compile(mainPath) {
       return `console.error(${JSON.stringify(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`)});`;
     }).join('\n');
   }
+  console.log('Compiled output: ', compiled);
   // main.ts -> main.js
   const mainCompiledPath = mainPath.replace(/\.ts$/, '.js');
   return compiled[mainCompiledPath];
