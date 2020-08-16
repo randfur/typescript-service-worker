@@ -73,14 +73,14 @@ function registerFetchHandler() {
       return;
     }
 
-    const path = getFilePath(event.request.url);
-    const jsPath = path + '.js';
-    if (jsPath in compiled) {
-      console.log('Already compiled: ' + jsPath);
-      event.respondWith(createJsResponse(compiled[jsPath]));
+    const jsUrl = event.request.url + '.js';
+    if (jsUrl in compiled) {
+      console.log('Already compiled: ' + jsUrl);
+      event.respondWith(createJsResponse(compiled[jsUrl]));
       return;
     }
 
+    const path = getFilePath(event.request.url);
     if (path.endsWith('.ts')) {
       event.respondWith((async () => {
         return createJsResponse(await compile(path));
@@ -122,7 +122,9 @@ async function compile(mainPath) {
   console.log('Compiled output: ', compiled);
   // main.ts -> main.js
   const mainCompiledPath = mainPath.replace(/\.ts$/, '.js');
-  return compiled[mainCompiledPath];
+  const mainCompiled = compiled[`${origin}${mainCompiledPath}`];
+  console.log(mainCompiledPath, mainCompiled);
+  return mainCompiled;
 }
 
 async function fetchSourceTree(mainPath) {
@@ -168,9 +170,11 @@ function* getModulePaths(path, source) {
     const modulePathExpr = ts.getExternalModuleName(statement);
     if (modulePathExpr && ts.isStringLiteral(modulePathExpr) && modulePathExpr.text) {
       const modulePath = appendPath(basePath, modulePathExpr.text);
-      if (modulePath.endsWith('js')) {
+      if (/\.js(\?.*)?$/.test(modulePath)) {
+        // a/b/c.js?module
         yield modulePath;
       } else {
+        // a/b/c
         yield modulePath + '.ts';
       }
     }
