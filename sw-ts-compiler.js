@@ -2,7 +2,7 @@ const tsLibs = {};
 let tsReady = null;
 
 class TsCompiler {
-  constructor({verbose}={verbose: 2}) {
+  constructor({verbose}={verbose: 0}) {
     this.verbose = verbose;
     this.sourceFiles = {};
     this.compiledFiles = {};
