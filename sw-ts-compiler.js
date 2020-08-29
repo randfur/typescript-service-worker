@@ -2,7 +2,7 @@ const tsLibs = {};
 let tsReady = null;
 
 class TsCompiler {
-  constructor({verbose}={verbose: 0}) {
+  constructor({verbose}={verbose: 2}) {
     this.verbose = verbose;
     this.sourceFiles = {};
     this.compiledFiles = {};
@@ -35,7 +35,9 @@ class TsCompiler {
       return compiled;
     }
 
-    console.assert(!isBrowserFetchingTs);
+    if (isBrowserFetchingTs)
+      return this.compileSourceFile(fetchUrl);
+
     return null;
   }
   
@@ -51,9 +53,11 @@ class TsCompiler {
         this.log(3, 'Downloading: ', url);
         seenUrls.add(url);
         const download = (async () => {
+          const response = await fetch(url);
+          this.log(3, 'Downloaded: ', url);
           return {
             url,
-            data: await (await fetch(url)).text(),
+            data: response.ok ? await response.text() : null,
           };
         })();
         downloads.set(url, download.finally(() => downloads.delete(url)));
@@ -64,10 +68,17 @@ class TsCompiler {
         break;
 
       const {url, data} = await Promise.race(downloads.values());
-      this.log(3, 'Downloaded: ', url);
-      if (this.sourceFiles[url] != data)
+      if (data == null) {
+        this.log(1, 'Download failed: ', url);
+        continue;
+      }
+
+      if (this.sourceFiles[url] != data) {
+        this.log(2, 'Source changed: ', url)
         changed = true;
+      }
       this.sourceFiles[url] = data;
+      
       for (const importUrl of this.getModulePaths(url, data)) {
         if (!seenUrls.has(importUrl)) {
           this.log(3, 'New import: ', importUrl);
@@ -96,6 +107,10 @@ class TsCompiler {
   
   compileSourceFile(url) {
     this.log(1, 'Compiling: ', url);
+    
+    const compiledUrl = tsUrlToCompiledUrl(url);
+    delete this.compiledFiles[compiledUrl];
+
     const self = this;
     ts.sys = {
       useCaseSensitiveFileNames: true,
@@ -125,6 +140,7 @@ class TsCompiler {
           return self.sourceFiles[path];
         }
         self.log(1, 'Missing file: ', path);
+        return null;
       },
       writeFile(path, text) {
         self.log(2, 'Write file: ', path);
@@ -149,7 +165,7 @@ class TsCompiler {
         return `console.error(${JSON.stringify(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`)});`;
       }).join('\n');
     }
-    return this.compiledFiles[tsUrlToCompiledUrl(url)];
+    return this.compiledFiles[compiledUrl];
   }
   
   log(level, ...args) {
