@@ -152,6 +152,7 @@ class TsCompiler {
       noEmitOnError: true,
       noImplicitAny: true,
       experimentalDecorators: true,
+      emitDecoratorMetadata: true,
       target: ts.ScriptTarget.ESNext,
       module: ts.ModuleKind.ESNext,
     });
