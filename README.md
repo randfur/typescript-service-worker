@@ -17,9 +17,22 @@ In your HTML:
 
 In your main.ts:
 ```typescript
+// .ts extension omitted (as required by TypeScript).
 import {A} from 'some/local/ts/module';
-import {B} from 'some/local/js/module.js'; // Must have module.d.ts present.
-import {C} from 'https://unpkg.com/some/external/js/library.js'; // Must have library.d.ts present.
 
-const x: number = new A(B.invalidProperty + C.cannotAdd); // This will fail compile and show errors in the console.
+// Must have some/local/js/module.d.ts present for .js files.
+import {B} from 'some/local/js/module.js';
+
+// External imports work too (needs library.d.ts file as well because .js file).
+import {C} from 'https://unpkg.com/some/external/js/library.js';
+
+// Type syntax works.
+const x: number = 1 + 2;
+
+// Imported types too.
+const a: A = new A();
+
+// Type mismatches fail compile, errors thrown in the console.
+// Console error: main.ts (17,7): Property 'b' is missing in type 'C' but required in type 'B'.
+const b: B = new C();
 ```
