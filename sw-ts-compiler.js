@@ -99,6 +99,8 @@ class TsCompiler {
         let sourceUrl = tsUrlToSourceUrl(modulePathExpr.text);
         if (sourceUrl.startsWith('.'))
           sourceUrl = new URL(url + '/../' + sourceUrl).href;
+        else if (sourceUrl.startsWith('/'))
+          sourceUrl = new URL(url).origin + sourceUrl;
         yield sourceUrl;
       }
     }
