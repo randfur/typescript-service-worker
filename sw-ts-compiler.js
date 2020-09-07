@@ -28,7 +28,9 @@ class TsCompiler {
         return await this.compileSourceFile(fetchUrl);
     }
 
-    const compiled = this.compiledFiles[tsUrlToCompiledUrl(fetchUrl)];
+    const compiledUrl = tsUrlToCompiledUrl(fetchUrl);
+    this.log(3, 'Compile cache check for: ', compiledUrl);
+    const compiled = this.compiledFiles[compiledUrl];
     if (compiled) {
       this.log(1, 'Compile cache hit: ', fetchUrl);
       return compiled;
@@ -99,8 +101,6 @@ class TsCompiler {
         let sourceUrl = tsUrlToSourceUrl(modulePathExpr.text);
         if (sourceUrl.startsWith('.'))
           sourceUrl = new URL(url + '/../' + sourceUrl).href;
-        else if (sourceUrl.startsWith('/'))
-          sourceUrl = new URL(url).origin + sourceUrl;
         yield sourceUrl;
       }
     }
@@ -130,9 +130,12 @@ class TsCompiler {
         return [];
       },
       fileExists(path) {
+        path = resolveOriginRelative(path);
+        self.log(3, 'File exists check: ', path);
         return path in self.tsLibs || path in self.sourceFiles;
       },
       readFile(path) {
+        path = resolveOriginRelative(path);
         if (path in self.tsLibs) {
           self.log(3, 'Read lib: ', path);
           return self.tsLibs[path];
@@ -145,6 +148,7 @@ class TsCompiler {
         return null;
       },
       writeFile(path, text) {
+        path = resolveOriginRelative(path);
         self.log(2, 'Write file: ', path);
         self.compiledFiles[path] = text;
       },
@@ -236,9 +240,15 @@ class TsCompiler {
   }
 }
 
+function resolveOriginRelative(url) {
+  return url.startsWith('/') ? location.origin + url : url;
+}
+
 function tsUrlToCompiledUrl(tsUrl) {
   // ./test -> ./test.js
   // ./test.ts -> ./test.js
+  // /test -> https://origin.com/test.js
+  tsUrl = resolveOriginRelative(tsUrl);
   return tsUrl.replace(/\.ts$/, '') + '.js';
 }
 
@@ -246,6 +256,8 @@ function tsUrlToSourceUrl(tsUrl) {
   // ./test -> ./test.ts
   // ./test.ts -> ./test.ts
   // ./test.js -> ./test.d.ts
+  // /test -> https://origin.com/test.ts
+  tsUrl = resolveOriginRelative(tsUrl);
   if (tsUrl.endsWith('.ts'))
     return tsUrl;
   if (tsUrl.endsWith('.js'))
