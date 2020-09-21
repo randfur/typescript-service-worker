@@ -233,6 +233,8 @@ class TsCompiler {
     const libsLoaded = Promise.all(tsLibFilenames.map(async filename => {
       this.tsLibs[filename] = await (await fetch(tsLibRoot + 'lib/' + filename)).text();
     }));
+    globalThis.process = {env: {}};
+    globalThis.require = () => undefined;
     importScripts(tsLibRoot + 'lib/typescriptServices.js');
     this.log(2, 'TypeScript services loaded.');
     await libsLoaded;
