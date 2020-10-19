@@ -167,7 +167,7 @@ class TsCompiler {
     };
 
     let program = ts.createProgram([url], {
-      ...compileOptions,
+      ...this.compileOptions,
       target: ts.ScriptTarget.ESNext,
       module: ts.ModuleKind.ESNext,
     });
