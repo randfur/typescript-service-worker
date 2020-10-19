@@ -1,6 +1,18 @@
 class TsCompiler {
-  constructor({verbose}={verbose: 0}) {
+  constructor({
+    verbose,
+    compileOptions,
+  } = {
+    verbose: 0,
+    compileOptions: {
+      noEmitOnError: true,
+      noImplicitAny: true,
+      strictNullChecks: true,
+      experimentalDecorators: true,
+    },
+  }) {
     this.verbose = verbose;
+    this.compileOptions = compileOptions;
     this.sourceFiles = {};
     this.compiledFiles = {};
     this.tsLibs = {};
@@ -155,9 +167,7 @@ class TsCompiler {
     };
 
     let program = ts.createProgram([url], {
-      noEmitOnError: true,
-      noImplicitAny: true,
-      experimentalDecorators: true,
+      ...compileOptions,
       target: ts.ScriptTarget.ESNext,
       module: ts.ModuleKind.ESNext,
     });
