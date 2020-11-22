@@ -2,7 +2,7 @@
 A service worker utility that translates *.ts files into *.js files with compile time checks enabled
 
 ## Example usage
-#### In your service worker:  
+#### In your service worker (sw.js):  
 ```javascript
 importScripts('https://randfur.github.io/typescript-service-worker/sw-ts-compiler.js');
 
@@ -13,6 +13,12 @@ addEventListener('fetch', event => tsCompiler.handleFetch(event));
 
 #### In your HTML:
 ```html
+<script>
+  navigator.serviceWorker.register('./sw.js');
+  if (!navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(() => location.reload());
+  }
+</script>
 <script type="module" src="main.ts"></script>
 ```
 
