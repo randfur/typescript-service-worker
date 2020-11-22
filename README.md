@@ -1,6 +1,12 @@
 # typescript-service-worker
 A service worker utility that translates *.ts files into *.js files with compile time checks enabled
 
+## Demo
+
+https://witty-legend-velociraptor.glitch.me/  
+Source: https://glitch.com/edit/#!/witty-legend-velociraptor
+
+
 ## Example usage
 #### In your service worker (sw.js):  
 ```javascript
